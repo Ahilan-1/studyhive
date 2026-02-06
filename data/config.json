@@ -1,0 +1,33 @@
+{
+  "checkin_interval_minutes": 120,
+  "checkin_grace_minutes": 10,
+  "announce_every_minutes": 10,
+  "default_focus_minutes": 50,
+  "default_break_minutes": 10,
+
+  "tier_bronze": 100,
+  "tier_silver": 300,
+  "tier_gold": 700,
+  "tier_elite": 1500,
+
+  "weekly_days": 7,
+  "commands_channel_name": "commands",
+  "motivation_channel_name": "study-feed",
+  "motivation_interval_minutes": 60,
+
+  "roles": {
+    "owner": "👑 Owner",
+    "staff": "🛡️ Staff",
+
+    "completed_today": "✅ Completed Today",
+    "streak_1": "🔥 1 Day Streak",
+
+    "top_achiever": "💎 Top Achiever",
+    "weekly_top10": "🏆 Weekly Top 10",
+
+    "tier_bronze": "🟩 Focus Bronze",
+    "tier_silver": "🟦 Focus Silver",
+    "tier_gold": "🟪 Focus Gold",
+    "tier_elite": "🟥 Focus Elite"
+  }
+}
