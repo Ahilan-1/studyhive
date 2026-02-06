@@ -4,6 +4,8 @@ import time
 import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Set, List, Tuple
+from aiohttp import web
+
 
 import discord
 from discord import app_commands
@@ -688,23 +690,59 @@ async def delete_duplicate_roles(guild: discord.Guild):
 # =========================
 # Bot class with safe startup
 # =========================
+async def start_health_server():
+    port = int(os.getenv("PORT", "10000"))
 
+    async def handle(_request):
+        return web.Response(text="StudyHive bot is alive ✅")
 
+    app = web.Application()
+    app.router.add_get("/", handle)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    print(f"[health] HTTP server running on 0.0.0.0:{port}")
 
 class StudyHiveBot(commands.Bot):
     async def setup_hook(self):
-        # start background tasks safely (discord.py 2.4+)
-        self.loop.create_task(accountability_loop(self))
-        self.loop.create_task(weekly_roles_loop(self))
-        self.loop.create_task(motivation_loop(self))
+        await start_health_server()  # ✅ this opens the port for Render
 
-        # sync slash commands
+        asyncio.create_task(accountability_loop(self))
+        asyncio.create_task(weekly_roles_loop(self))
+        asyncio.create_task(motivation_loop(self))
+
         try:
             await self.tree.sync()
         except Exception as e:
             print("Command sync error:", e)
 
+
+
+
 bot = StudyHiveBot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if member.bot or not member.guild:
+        return
+
+    # user joined a VC
+    if before.channel is None and after.channel is not None:
+        ch = get_commands_channel(member.guild)
+        if not ch:
+            return
+        try:
+            await ch.send(
+                f"{member.mention} joined **{after.channel.name}**.\n"
+                f"Start strong: use `/focus 50` and set a task with `/goal <what you will do>` ✅"
+            )
+        except discord.Forbidden:
+            pass
+
 
 @bot.event
 async def on_ready():
@@ -856,7 +894,8 @@ async def focus_cmd(interaction: discord.Interaction, minutes: Optional[int] = N
     save_json_atomic(USERS_PATH, users_db)
 
     active_sessions[vc.id] = sess
-    bot.loop.create_task(run_session_loop(interaction.guild, vc, text_ch, sess))
+    asyncio.create_task(run_session_loop(interaction.guild, vc, text_ch, sess))
+
 
     await interaction.followup.send(f"Started **FOCUS {mins} min** for VC **{vc.name}**. Updates in {text_ch.mention}.", ephemeral=True)
 
@@ -896,7 +935,8 @@ async def break_cmd(interaction: discord.Interaction, minutes: Optional[int] = N
     )
 
     active_sessions[vc.id] = sess
-    bot.loop.create_task(run_session_loop(interaction.guild, vc, text_ch, sess))
+    asyncio.create_task(run_session_loop(interaction.guild, vc, text_ch, sess))
+
 
     await interaction.followup.send(f"Started **BREAK {mins} min** for VC **{vc.name}**.", ephemeral=True)
 
@@ -998,6 +1038,14 @@ async def checkin_cmd(interaction: discord.Interaction, update: str):
     save_json_atomic(SESSIONS_PATH, sessions_db)
 
     await interaction.followup.send(f"Check-in recorded ✅ (+{SCORE_CHECKIN_OK} Focus Score)", ephemeral=True)
+
+def get_commands_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
+    name = str(CONFIG.get("commands_channel_name", "commands")).lower()
+    for ch in guild.text_channels:
+        if ch.name.lower() == name:
+            return ch
+    return None
+
 
 @bot.tree.command(name="ghost", description="Toggle Ghost Mode (no check-in pings).")
 @app_commands.describe(on="True=on, False=off.")
