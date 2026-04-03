@@ -23,8 +23,7 @@ LOG_CHANNEL_ID         = 1475523026497048586
 
 # ── Set this to the ID of your "📚 X studying" voice channel name trick ──
 # Create a VC in Discord, lock it so nobody can join, copy its ID here
-STUDYING_COUNT_CHANNEL_ID = 1476295380793561339   # 👈 replace with your channel ID
-
+STUDYING_COUNT_CHANNEL_ID = 1476295380793561339   
 ADMIN_ROLE_ID = 1469300951335567401
 MOD_ROLE_ID   = 1469300951335567401
 
